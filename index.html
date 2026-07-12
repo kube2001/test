@@ -452,7 +452,14 @@
         株価はAPI仕様によりリアルタイムまたは遅延データになる場合があります。
       </p>
     </section>
-          <h2>設定・リアルタイム更新</h2>
+          <h2>損益グラフ</h2>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="profitChart"></canvas>
+        </div>
+      </div>
+    </section>
+<h2>設定・リアルタイム更新</h2>
           <div class="controls">
             <button class="secondary small" onclick="toggleDarkMode()">ダークモード</button>
             <button class="green small" onclick="refreshAll()">今すぐ更新</button>
@@ -494,13 +501,7 @@
 
       <div class="card">
         <div class="section-title">
-          <h2>損益グラフ</h2>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="profitChart"></canvas>
-        </div>
-      </div>
-    </section>
+
 
     <section class="card" style="margin-bottom:14px;">
       <div class="section-title">
