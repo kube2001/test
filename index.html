@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AMD 株価＋損益＋NY市場カウントダウン＋緊急速報</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0; height: 100%;
+      background-color: #111;
+      color: #fff;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      user-select: none;
+      overflow: auto;
+    }
+    body {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      padding: 0.3rem 1rem 1rem 1rem;
+      box-sizing: border-box;
+      position: relative;
+    }
+    #topTimePanel {
+      text-align: center;
+      margin-bottom: 1rem;
+      user-select: none;
+      color: #0af;
+    }
+    #nyTime {
+      font-size: 2.8rem;
+      font-weight: bold;
+      letter-spacing: 0.05em;
+      margin-bottom: 0.2rem;
+      text-shadow: 0 0 8px #0af;
+    }
+    #countdown {
+      font-size: 1.6rem;
+      font-weight: bold;
+      color: #f33;
+      text-shadow: 0 0 6px #f33;
+      min-height: 1.8em;
+    }
+    #content {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: row;
+      gap: 2rem;
+      max-width: 1400px;
+      margin: 0 auto;
+      width: 100%;
+      align-items: flex-start;
+      justify-content: center;
+      position: relative;
+      flex-wrap: nowrap;
+    }
+    #leftPanel {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem; /* 少し狭く */
+      flex-shrink: 0;
+      width: 320px;
+      user-select: text;
+      margin-top: -12px; /* さらに上に詰める */
+    }
+    #infoPanel {
+      background: rgba(20, 20, 20, 0.8);
+      padding: 0.4rem 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 8px #0f0a;
+      font-size: 1.05rem;
+      line-height: 1.3;
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      z-index: 10;
+      white-space: pre-line;
+    }
+    #infoPanel > div {
+      margin-bottom: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    #infoPanel label {
+      font-weight: bold;
+      display: inline-block;
+      min-width: 110px;
+      margin-bottom: 0;
+      user-select: text;
+    }
+    input[type="number"] {
+      width: 90px;
+      font-size: 1rem;
+      padding: 0.15rem 0.3rem;
+      border-radius: 4px;
+      border: none;
+      background-color: #222;
+      color: #fff;
+      text-align: right;
+      transition: background-color 0.3s;
+      margin-bottom: 0;
+      user-select: text;
+    }
+    input[type="number"]:focus {
+      background-color: #333;
+      outline: none;
+    }
+    .profit-display {
+      font-size: 1.4rem;
+      font-weight: bold;
+      margin-top: 0.1rem;
+      white-space: pre-line;
+      word-break: break-word;
+      user-select: text;
+    }
+    .positive { color: #0f0; }
+    .negative { color: #f33; }
+    /* 緊急速報BOXの背景色はデフォルト青系 */
+    #alertBox {
+      background-color: rgba(0, 90, 200, 0.9);
+      color: #fff;
+      padding: 0.3rem 1rem; /* 上下余白を減らす */
+      border-radius: 6px;
+      box-shadow: 0 0 10px rgba(0, 90, 200, 0.9);
+      font-weight: bold;
+      font-size: 1rem;
+      white-space: pre-wrap;
+      overflow-y: visible; /* スクロールなしに */
+      max-height: none; /* 高さ制限解除 */
+      user-select: text;
+      display: none;
+      flex-shrink: 0;
+      min-height: auto;
+      transition: background-color 0.3s, box-shadow 0.3s;
+    }
+    #alertBox h2 {
+      margin: 0 0 0.3rem 0; /* 上下の余白を狭く */
+      font-size: 1.3rem;
+      color: #fff;
+    }
+    #alertContentTitle {
+      font-weight: bold;
+      font-size: 1.1rem;
+      margin-bottom: 0.2rem;
+      text-shadow: 0 0 3px #fff;
+    }
+    #alertContentDescription {
+      font-weight: normal;
+      font-size: 0.95rem;
+      line-height: 1.3;
+      white-space: normal;
+      color: #ffbbbb;
+      margin: 0;
+    }
+    #chartContainer {
+      flex-grow: 1;
+      max-width: 1100px;
+      width: 100%;
+      height: 550px;
+      background-color: #222;
+      border-radius: 8px;
+      box-shadow: 0 0 10px #0af;
+      overflow: hidden;
+      margin-top: -30px;
+    }
+    @media screen and (max-width: 720px) {
+      #content {
+        flex-direction: column;
+        align-items: center;
+      }
+      #leftPanel {
+        width: 90vw;
+        gap: 0.6rem;
+        margin-top: 0; /* スマホは戻す */
+      }
+      #chartContainer {
+        max-width: 90vw;
+        margin-top: 0;
+        height: 400px;
+      }
+      #alertBox {
+        max-height: none;
+        overflow-y: visible;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="topTimePanel">
+    <div id="nyTime">NY時間: --:--:--</div>
+    <div id="countdown"></div>
+  </div>
+
+  <div id="content">
+    <div id="leftPanel" aria-label="株価関連情報">
+      <div id="infoPanel" role="region" aria-label="含み損益情報">
+        <div>
+          <label for="buyPriceInput">購入価格 (USD)：</label>
+          <input id="buyPriceInput" type="number" min="0" step="0.01" value="115.50" />
+        </div>
+        <div>
+          <label for="sharesInput">保有株数：</label>
+          <input id="sharesInput" type="number" min="1" value="25" />
+        </div>
+        <div>
+          含み損益:
+          <div id="profit" class="profit-display">読み込み中...</div>
+        </div>
+      </div>
+
+      <div id="alertBox" role="alert" aria-live="assertive" aria-atomic="true" aria-label="緊急速報">
+        <h2>緊急速報</h2>
+        <div id="alertContentTitle">取得中...</div>
+        <div id="alertContentDescription"></div>
+      </div>
+    </div>
+
+    <div id="chartContainer" aria-label="AMD株価チャート">
+      <div id="tradingview_amd" style="width: 100%; height: 550px;"></div>
+    </div>
+  </div>
+
+  <script src="https://s3.tradingview.com/tv.js"></script>
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const profitElem = document.getElementById('profit');
+      const sharesInput = document.getElementById('sharesInput');
+      const buyPriceInput = document.getElementById('buyPriceInput');
+      const nyTimeElem = document.getElementById('nyTime');
+      const countdownElem = document.getElementById('countdown');
+      const alertBox = document.getElementById('alertBox');
+      const alertContentTitle = document.getElementById('alertContentTitle');
+      const alertContentDescription = document.getElementById('alertContentDescription');
+
+      const FINNHUB_API_KEY = 'd123n2pr01qmhi3g84l0d123n2pr01qmhi3g84lg';
+      const EXCHANGE_API_KEY = '9b593a13b18dea7fc1d7fa2c';
+
+      let currentPrice = null;
+      let usdJpy = null;
+
+      let soundAllowed = false;
+      const alertSound = new Audio('https://cdn.jsdelivr.net/gh/kaiou2525/soundeffect-lab@main/mp3/alert01.mp3');
+      alertSound.volume = 0.2;
+
+      document.body.addEventListener('click', () => {
+        soundAllowed = true;
+      }, { once: true });
+
+      async function fetchWithRetry(fetchFunc, retries = 3, delayMs = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await fetchFunc();
+      return;
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+}
+
+      async function fetchStockPrice() {
+        const url = `https://finnhub.io/api/v1/quote?symbol=AMD&token=${FINNHUB_API_KEY}`;
+        try {
+          const res = await fetch(url);
+          if (!res.ok) throw new Error(`株価API HTTPエラー: ${res.status}`);
+          const data = await res.json();
+          if (typeof data.c !== 'number' || data.c === 0) throw new Error('価格情報がありません');
+          currentPrice = data.c;
+        } catch (e) {
+          currentPrice = null;
+          throw e;
+        }
+      }
+
+// キャッシュ用の変数は関数外に定義
+let usdJpyCache = null;
+let usdJpyCacheTime = 0;
+const USDJPY_CACHE_DURATION = 60 * 60 * 1000; // 60分
+
+async function fetchWithRetry(fetchFunc, retries = 3, delayMs = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await fetchFunc();
+      return;
+    } catch (e) {
+      if (i === retries - 1) throw e;
+      await new Promise(res => setTimeout(res, delayMs));
+    }
+  }
+}
+
+async function fetchUsdJpy() {
+  const now = Date.now();
+  if (usdJpyCache && (now - usdJpyCacheTime) < USDJPY_CACHE_DURATION) {
+    // キャッシュ利用
+    usdJpy = usdJpyCache;
+    return;
+  }
+
+  const url = `https://v6.exchangerate-api.com/v6/${EXCHANGE_API_KEY}/latest/USD`;
+  try {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`為替API HTTPエラー: ${res.status}`);
+    const data = await res.json();
+    if (data.result !== 'success') throw new Error('為替APIデータ不正');
+    usdJpyCache = data.conversion_rates.JPY;
+    usdJpyCacheTime = now;
+    usdJpy = usdJpyCache;
+  } catch (e) {
+    usdJpy = null;
+    throw e;
+  }
+}
+
+
+
+
+
+      function updateProfit() {
+        const buyPrice = parseFloat(buyPriceInput.value);
+        const shares = parseInt(sharesInput.value, 10);
+        if (!currentPrice || !usdJpy || isNaN(buyPrice) || isNaN(shares)) {
+          profitElem.textContent = '計算できません';
+          profitElem.className = 'profit-display';
+          return;
+        }
+        const profitUsd = (currentPrice - buyPrice) * shares;
+        const profitJpy = profitUsd * usdJpy;
+
+        const profitStr = 
+          `現在株価: ${currentPrice.toFixed(2)} USD\n` +
+          `USD: ${profitUsd >= 0 ? '+' : ''}${profitUsd.toFixed(2)}\n` +          `JPY: ${profitJpy >= 0 ? '+' : ''}${profitJpy.toFixed(0)}\n` +
+          `為替: ${usdJpy.toFixed(2)}`;
+
+        profitElem.textContent = profitStr;
+        profitElem.className = 'profit-display ' + (profitUsd >= 0 ? 'positive' : 'negative');
+      }
+
+      async function fetchAlert() {
+        const proxyUrl = 'https://api.allorigins.win/get?url=';
+        const targetUrl = encodeURIComponent('https://www3.nhk.or.jp/rss/news/cat0.xml');
+        try {
+          const res = await fetch(proxyUrl + targetUrl);
+          if (!res.ok) throw new Error('緊急速報APIエラー');
+          const data = await res.json();
+          const parser = new DOMParser();
+          const xml = parser.parseFromString(data.contents, "text/xml");
+          const firstItem = xml.querySelector('item');
+          if (firstItem) {
+            const title = firstItem.querySelector('title')?.textContent || '';
+            const description = firstItem.querySelector('description')?.textContent || '';
+            alertContentTitle.textContent = title;
+            alertContentDescription.textContent = description;
+            alertBox.style.display = 'block';
+
+            // 緊急性に応じて背景色を変更
+            // 例: 「緊急」や「注意」などキーワードで色変え（必要に応じて調整してください）
+            if (title.includes('緊急') || title.includes('速報')) {
+              alertBox.style.backgroundColor = 'rgba(255, 50, 50, 0.9)'; // 赤系
+              alertBox.style.boxShadow = '0 0 10px rgba(255, 50, 50, 0.9)';
+            } else if (title.includes('注意')) {
+              alertBox.style.backgroundColor = 'rgba(255, 140, 0, 0.9)'; // オレンジ系
+              alertBox.style.boxShadow = '0 0 10px rgba(255, 140, 0, 0.9)';
+            } else {
+              alertBox.style.backgroundColor = 'rgba(0, 90, 200, 0.9)'; // デフォルト青系
+              alertBox.style.boxShadow = '0 0 10px rgba(0, 90, 200, 0.9)';
+            }
+
+            if (soundAllowed) alertSound.play().catch(() => {});
+          } else {
+            alertContentTitle.textContent = '緊急速報なし';
+            alertContentDescription.textContent = '';
+            alertBox.style.display = 'none';
+          }
+        } catch (e) {
+          alertContentTitle.textContent = '緊急速報取得エラー';
+          alertContentDescription.textContent = '';
+          alertBox.style.display = 'none';
+          console.error(e);
+        }
+      }
+
+      function getNyTime() {
+        const now = new Date();
+        const nyTimeStr = now.toLocaleString('ja-JP', { timeZone: 'America/New_York' });
+        return new Date(nyTimeStr);
+      }
+
+       function updateNyTimeAndCountdown() {
+  const nowNy = getNyTime();
+  const day = nowNy.getDay(); // 0=日曜, 6=土曜
+  const hh = String(nowNy.getHours()).padStart(2, '0');
+  const mm = String(nowNy.getMinutes()).padStart(2, '0');
+  const ss = String(nowNy.getSeconds()).padStart(2, '0');
+  nyTimeElem.textContent = `NY時間: ${hh}:${mm}:${ss}`;
+
+  const openTime = new Date(nowNy);
+  openTime.setHours(9, 30, 0, 0);
+  const closeTime = new Date(nowNy);
+  closeTime.setHours(16, 0, 0, 0);
+
+  let target, statusText;
+
+  if (day === 0) {
+    // 日曜 → 次の月曜9:30まで
+    const nextOpen = new Date(openTime);
+    nextOpen.setDate(nowNy.getDate() + 1);
+    target = nextOpen;
+    statusText = 'NY市場オープンまで';
+  } else if (day === 6) {
+    // 土曜 → 次の月曜9:30まで
+    const nextOpen = new Date(openTime);
+    nextOpen.setDate(nowNy.getDate() + 2);
+    target = nextOpen;
+    statusText = 'NY市場オープンまで';
+  } else {
+    // 月〜金
+    if (nowNy < openTime) {
+      target = openTime;
+      statusText = 'NY市場オープンまで';
+    } else if (nowNy >= openTime && nowNy < closeTime) {
+      target = closeTime;
+      statusText = 'NY市場クローズまで';
+    } else {
+      // 営業時間外（16時以降）
+      const nextOpen = new Date(openTime);
+      nextOpen.setDate(nowNy.getDate() + 1);
+      const nextDay = nextOpen.getDay();
+      if (nextDay === 6) {
+        nextOpen.setDate(nextOpen.getDate() + 2);
+      } else if (nextDay === 0) {
+        nextOpen.setDate(nextOpen.getDate() + 1);
+      }
+      target = nextOpen;
+      statusText = 'NY市場オープンまで';
+    }
+  }
+
+  const diffMs = target - nowNy;
+  const diffH = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffM = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  const diffS = Math.floor((diffMs % (1000 * 60)) / 1000);
+  countdownElem.textContent = `${statusText} ${diffH}時間${diffM}分${diffS}秒`;
+}
+
+
+      // TradingViewチャート初期化
+      function initChart() {
+        new TradingView.widget({
+          width: "100%",
+          height: 550,
+          symbol: "NASDAQ:AMD",
+          interval: "D",
+          timezone: "America/New_York",
+          theme: "dark",
+          style: "1",
+          locale: "ja",
+          toolbar_bg: "#222",
+          enable_publishing: false,
+          allow_symbol_change: true,
+          container_id: "tradingview_amd"
+        });
+      }
+
+      async function mainLoop() {
+  try {
+    await Promise.all([
+      fetchWithRetry(fetchStockPrice),
+      fetchWithRetry(fetchUsdJpy),
+    ]);
+    updateProfit();
+    await fetchAlert();
+  } catch (e) {
+    profitElem.textContent = `データ取得エラー: ${e.message || e}`;
+    profitElem.className = 'profit-display error';
+    console.error(e);
+  }
+}
+
+
+      // 初期化
+      initChart();
+      mainLoop();
+
+      setInterval(() => {
+        mainLoop();
+      }, 1 * 60 * 1000); // 1分毎に更新
+
+      setInterval(updateNyTimeAndCountdown, 1000); // 1秒毎にNY時間・カウントダウン更新
+
+      // 利用者が数値を変えたら即計算更新
+      buyPriceInput.addEventListener('input', updateProfit);
+      sharesInput.addEventListener('input', updateProfit);
+    });
+
+  </script>
+</body>
+</html>
