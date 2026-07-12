@@ -410,6 +410,48 @@
     <section class="top-row">
       <div class="card">
         <div class="section-title">
+          <h2>保有銘柄一覧</h2>
+        <div class="controls">
+          <button class="secondary small" onclick="exportCSV()">CSV出力</button>
+          <button class="secondary small" onclick="document.getElementById('csvFile').click()">CSV読込</button>
+          <input id="csvFile" class="file-input" type="file" accept=".csv" onchange="importCSV(event)" />
+          <button class="danger small" onclick="clearAll()">全削除</button>
+        </div>
+      </div>
+
+      <div class="search-row">
+        <input id="search" type="text" placeholder="銘柄コード・銘柄名で検索" oninput="render()" />
+        <span class="badge" id="lastUpdated">未更新</span>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th onclick="setSort('symbol')">銘柄</th>
+              <th onclick="setSort('currency')">通貨</th>
+              <th onclick="setSort('qty')">株数</th>
+              <th onclick="setSort('buyPrice')">購入単価</th>
+              <th onclick="setSort('currentPrice')">現在株価</th>
+              <th onclick="setSort('changePct')">前日比</th>
+              <th onclick="setSort('costJPY')">取得額</th>
+              <th onclick="setSort('valueJPY')">評価額</th>
+              <th onclick="setSort('profitJPY')">損益</th>
+              <th onclick="setSort('profitRate')">損益率</th>
+              <th>更新</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+
+      <p class="footer-note">
+        注意：GitHub Pagesは静的サイトのため、APIキーはブラウザ側に保存されます。
+        本格運用ではサーバー側でAPIキーを管理する方式が安全です。
+        株価はAPI仕様によりリアルタイムまたは遅延データになる場合があります。
+      </p>
+    </section>
           <h2>設定・リアルタイム更新</h2>
           <div class="controls">
             <button class="secondary small" onclick="toggleDarkMode()">ダークモード</button>
@@ -508,48 +550,6 @@
 
     <section class="card">
       <div class="section-title">
-        <h2>保有銘柄一覧</h2>
-        <div class="controls">
-          <button class="secondary small" onclick="exportCSV()">CSV出力</button>
-          <button class="secondary small" onclick="document.getElementById('csvFile').click()">CSV読込</button>
-          <input id="csvFile" class="file-input" type="file" accept=".csv" onchange="importCSV(event)" />
-          <button class="danger small" onclick="clearAll()">全削除</button>
-        </div>
-      </div>
-
-      <div class="search-row">
-        <input id="search" type="text" placeholder="銘柄コード・銘柄名で検索" oninput="render()" />
-        <span class="badge" id="lastUpdated">未更新</span>
-      </div>
-
-      <div class="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th onclick="setSort('symbol')">銘柄</th>
-              <th onclick="setSort('currency')">通貨</th>
-              <th onclick="setSort('qty')">株数</th>
-              <th onclick="setSort('buyPrice')">購入単価</th>
-              <th onclick="setSort('currentPrice')">現在株価</th>
-              <th onclick="setSort('changePct')">前日比</th>
-              <th onclick="setSort('costJPY')">取得額</th>
-              <th onclick="setSort('valueJPY')">評価額</th>
-              <th onclick="setSort('profitJPY')">損益</th>
-              <th onclick="setSort('profitRate')">損益率</th>
-              <th>更新</th>
-              <th>操作</th>
-            </tr>
-          </thead>
-          <tbody id="tbody"></tbody>
-        </table>
-      </div>
-
-      <p class="footer-note">
-        注意：GitHub Pagesは静的サイトのため、APIキーはブラウザ側に保存されます。
-        本格運用ではサーバー側でAPIキーを管理する方式が安全です。
-        株価はAPI仕様によりリアルタイムまたは遅延データになる場合があります。
-      </p>
-    </section>
   </main>
 
   <script>
